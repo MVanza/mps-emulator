@@ -29,7 +29,7 @@ class MPSBuilder():
         
         
     
-    def createMPS(self, state_vector: np.ndarray):
+    def create_left_MPS(self, state_vector: np.ndarray):
         new_state = state_vector
         alpha = 1
         for i in range(1, self.qubits_num):
@@ -43,6 +43,24 @@ class MPSBuilder():
                 self.mps_matrices.append(U)
             else:
                 self.mps_matrices.append(U.reshape((U.shape[0]-self.dim, self.dim, U.shape[1]), order="F"))
+                if i == self.qubits_num - 1:
+                    self.mps_matrices.append(np.diag(S) @ V)
+            new_state = np.diag(S) @ V
+
+    def create_right_MPS(self, state_vector: np.ndarray):
+        new_state = state_vector
+        alpha = 1
+        for i in range(1, self.qubits_num):
+            # print(f"new_state before reshape {new_state}")
+            new_state = new_state.reshape((self.dim * alpha, (self.dim**(self.qubits_num-i))), order="C")
+            # print(f"new_state after reshape {new_state}")
+            U, S, V = svd(new_state, full_matrices=False)
+            # print(f"U is {U}, S is {S}, V is {V}")
+            alpha = U.shape[1]
+            if i == 1:
+                self.mps_matrices.append(U)
+            else:
+                self.mps_matrices.append(U.reshape((U.shape[0]-self.dim, self.dim, U.shape[1]), order="C"))
                 if i == self.qubits_num - 1:
                     self.mps_matrices.append(np.diag(S) @ V)
             new_state = np.diag(S) @ V
@@ -62,11 +80,11 @@ qubits_num = 3
 
 mps_matrices = []
 
-state = np.array([0, 1, 1, 0, 1, 0, 0, 0]) * 1/np.sqrt(3)
+state = np.array([0, 1, 0, 0, 0, 0, 0, 1])
 
 m = MPSBuilder(3, 2)
 new_state = m.state_to_vector('1/sqrt(2) * (|000> + |111>)')
-m.createMPS(new_state)
+m.create_right_MPS(new_state)
 print(m.get_MPS())
 print(m.check_MPS(new_state))
 
